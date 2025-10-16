@@ -1,35 +1,63 @@
-import * as React from 'react';
-import { DataGrid } from '@mui/x-data-grid';
-import Paper from '@mui/material/Paper';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import Box from '@mui/material/Box';
-import Tooltip from '@mui/material/Tooltip';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogTitle from '@mui/material/DialogTitle';
-import Button from '@mui/material/Button';
-import TextField from '@mui/material/TextField';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Switch from '@mui/material/Switch';
-import Chip from '@mui/material/Chip';
-import { useDispatch, useSelector } from 'react-redux';
-import { deleteTodo, updateTodo } from '../store/todoSlice';
-import type { Todo } from '../store/todoSlice';
-import { selectFilteredTodos } from '../store/todoSlice';
-
-
-const paginationModel = { page: 0, pageSize: 5 };
+import * as React from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Chip,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControlLabel,
+  Switch,
+  Box,
+  Avatar,
+  Button,
+} from "@mui/material";
+import { Icon } from "@iconify/react";
+import { useDispatch, useSelector } from "react-redux";
+import moment from "moment";
+import {
+  deleteTodo,
+  updateTodo,
+  selectFilteredTodos,
+  type Todo,
+} from "../store/todoSlice";
 
 const TodoList = () => {
+  const [page, setPage] = React.useState(0);
+  const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
   const [openEditDialog, setOpenEditDialog] = React.useState(false);
   const [selectedIdToDelete, setSelectedIdToDelete] = React.useState<number | null>(null);
   const [selectedTodo, setSelectedTodo] = React.useState<Todo | null>(null);
 
+  const [orderBy, setOrderBy] = React.useState<"timeStamp" | null>(null);
+  const [orderDirection, setOrderDirection] = React.useState<"asc" | "desc">("asc");
+
   const dispatch = useDispatch();
   const rows = useSelector(selectFilteredTodos);
+
+  const handleSort = (column: "timeStamp") => {
+    const isAsc = orderBy === column && orderDirection === "asc";
+    setOrderDirection(isAsc ? "desc" : "asc");
+    setOrderBy(column);
+  };
+
+  const sortedRows = React.useMemo(() => {
+    if (!orderBy) return rows;
+    return [...rows].sort((a, b) => {
+      const aTime = moment(a.timeStamp).valueOf();
+      const bTime = moment(b.timeStamp).valueOf();
+      return orderDirection === "asc" ? aTime - bTime : bTime - aTime;
+    });
+  }, [rows, orderBy, orderDirection]);
 
   const handleDelete = () => {
     if (selectedIdToDelete !== null) {
@@ -47,147 +75,186 @@ const TodoList = () => {
     setSelectedTodo(null);
   };
 
-  const columns = [
-    {
-      field: 'id',
-      headerName: 'ID',
-      width: 150,
-      renderCell: (params: { row: Todo }) => (
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <span>{params.row.id}</span>
-        </Box>
-      )
-    },
-    {
-      field: 'title',
-      headerName: 'Task',
-      width: 450,
-      renderCell: (params: { row: Todo }) => (
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <span>{params.row.title}</span>
-        </Box>
-      )
-    },
-    {
-      field: 'time',
-      headerName: 'Time',
-      width: 200,
-      renderCell: (params: { row: Todo }) => (
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <span>{params.row.timeStamp}</span>
-        </Box>
-      )
-    },
-    {
-      field: 'status',
-      headerName: 'Status',
-      width: 200,
-      renderCell: (params: { row: Todo }) => (
-        <Chip
-          label={params.row.completed ? "Completed" : "Pending"}
-          color={params.row.completed ? "success" : "warning"}
-        />
-      )
-    },
-    {
-      field: 'action',
-      headerName: 'Action',
-      width: 200,
-      sortable: false,
-      filterable: false,
-      renderCell: (params: { row: Todo }) => (
-        <Box>
-          <Tooltip title="Edit Task">
-            <EditIcon
-              onClick={() => {
-                setSelectedTodo({ ...params.row });
-                setOpenEditDialog(true);
-              }}
-              sx={{ color: 'blue', cursor: 'pointer' }}
-            />
-          </Tooltip>
-          <Tooltip title="Delete Task">
-            <DeleteIcon
-              onClick={() => {
-                setSelectedIdToDelete(params.row.id);
-                setOpenDeleteDialog(true);
-              }}
-              sx={{ color: 'red', cursor: 'pointer', ml: 2 }}
-            />
-          </Tooltip>
-        </Box>
-      )
-    }
-  ];
-
-
+  const handleChangePage = (_: unknown, newPage: number) => setPage(newPage);
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(+event.target.value);
+    setPage(0);
+  };
 
   return (
     <>
-      <Paper sx={{ height: 400, width: '100%' }}>
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          initialState={{ pagination: { paginationModel } }}
-          pageSizeOptions={[5, 10]}
-          disableRowSelectionOnClick
-          hideFooterSelectedRowCount
-          disableColumnSelector
-          disableColumnMenu
-          disableColumnFilter
-          sx={{
-            border: 0,
-            '.MuiDataGrid-cell:focus': {
-              outline: 'none',
-            },
-            '.MuiDataGrid-columnHeader:focus': {
-              outline: 'none',
-            }
-          }} />
-      </Paper>
+      <TableContainer>
+        <Table stickyHeader>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ width: "8%", fontWeight: 600, backgroundColor: "#f8f9fa" }}>ID</TableCell>
+              <TableCell sx={{ width: "45%", fontWeight: 600, backgroundColor: "#f8f9fa" }}>Task</TableCell>
+              <TableCell
+                sx={{
+                  width: "20%",
+                  fontWeight: 600,
+                  backgroundColor: "#f8f9fa",
+                  cursor: "pointer",
+                  userSelect: "none",
+                }}
+                onClick={() => handleSort("timeStamp")}
+              >
+                Time{" "}
+                <Icon
+                  icon={
+                    orderBy === "timeStamp"
+                      ? orderDirection === "asc"
+                        ? "mdi:arrow-up"
+                        : "mdi:arrow-down"
+                      : "mdi:unfold-more-horizontal"
+                  }
+                  style={{ fontSize: "18px", verticalAlign: "middle" }}
+                />
+              </TableCell>
+              <TableCell sx={{ width: "15%", fontWeight: 600, backgroundColor: "#f8f9fa" }}>Status</TableCell>
+              <TableCell sx={{ width: "12%", fontWeight: 600, backgroundColor: "#f8f9fa" }}>Action</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {sortedRows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} align="center" sx={{ py: 4, color: "text.secondary" }}>
+                  No rows found
+                </TableCell>
+              </TableRow>
+            ) : (
+              sortedRows
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((row, index) => (
+                  <TableRow
+                    key={row.id}
+                    hover
+                    sx={{
+                      cursor: "pointer",
+                      "&:hover": { backgroundColor: "rgba(0,0,0,0.02)" },
+                    }}
+                  >
+                    <TableCell sx={{ width: "8%" }}>{page * rowsPerPage + index + 1}</TableCell>
+                    <TableCell
+                      sx={{
+                        width: "45%",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      <Tooltip title={row.title.length > 60 ? row.title : ""}>
+                        <span>{row.title.length > 60 ? row.title.slice(0, 60) + "..." : row.title}</span>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell sx={{ width: "20%" }}>
+                      {moment(row.timeStamp).format("D/M/YYYY, h:mm A")}
+                    </TableCell>
+                    <TableCell sx={{ width: "15%" }}>
+                      <Chip
+                        label={row.completed ? "Completed" : "Pending"}
+                        color={row.completed ? "success" : "warning"}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell sx={{ width: "12%" }}>
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        <Tooltip title="Edit Task">
+                          <Icon
+                            icon="mdi:pencil"
+                            style={{ color: "#1976d2", cursor: "pointer", fontSize: "20px" }}
+                            onClick={() => {
+                              setSelectedTodo({ ...row });
+                              setOpenEditDialog(true);
+                            }}
+                          />
+                        </Tooltip>
+                        <Tooltip title="Delete Task">
+                          <Icon
+                            icon="mdi:delete"
+                            style={{ color: "#d32f2f", cursor: "pointer", fontSize: "20px" }}
+                            onClick={() => {
+                              setSelectedIdToDelete(row.id);
+                              setOpenDeleteDialog(true);
+                            }}
+                          />
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
+            )}
+          </TableBody>
+
+
+        </Table>
+      </TableContainer>
+
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component="div"
+        count={rows.length}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+      />
 
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
-        <DialogTitle>Delete Task</DialogTitle>
-        <DialogContent>
-          Are you sure you want to delete this task? This action cannot be undone.
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
-          <Button onClick={handleDelete} color="error">Delete</Button>
-        </DialogActions>
+        <Box sx={{ textAlign: "center", p: 3 }}>
+          <Avatar sx={{ margin: "0 auto", bgcolor: "#ffebee", width: 60, height: 60, mb: 1 }}>
+            <Icon icon="mdi:delete" style={{ fontSize: 40, color: "#d32f2f" }} />
+          </Avatar>
+          <DialogTitle>Delete Task</DialogTitle>
+          <DialogContent>Are you sure you want to delete this task? This action cannot be undone.</DialogContent>
+          <DialogActions sx={{ justifyContent: "center" }}>
+            <Button onClick={() => setOpenDeleteDialog(false)} variant="outlined">
+              Cancel
+            </Button>
+            <Button onClick={handleDelete} color="error" variant="outlined">
+              Delete
+            </Button>
+          </DialogActions>
+        </Box>
       </Dialog>
 
-      \      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)}>
-        <DialogTitle>Edit Task</DialogTitle>
-        <DialogContent>
-          <TextField
-            label="Task Name"
-            fullWidth
-            variant="outlined"
-            margin="normal"
-            value={selectedTodo?.title || ''}
-            onChange={(e) =>
-              selectedTodo &&
-              setSelectedTodo({ ...selectedTodo, title: e.target.value } as Todo)
-            }
-          />
-          <FormControlLabel
-            control={
-              <Switch
-                checked={selectedTodo?.completed || false}
-                onChange={(e) =>
-                  selectedTodo &&
-                  setSelectedTodo({ ...selectedTodo, completed: e.target.checked } as Todo)
-                }
-              />
-            }
-            label="Completed"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenEditDialog(false)}>Cancel</Button>
-          <Button onClick={handleEditSave} color="primary">Save</Button>
-        </DialogActions>
+      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)}>
+        <Box sx={{ textAlign: "center", p: 3 }}>
+          <DialogTitle>Edit Task</DialogTitle>
+          <DialogContent>
+            <TextField
+              label="Task Name"
+              fullWidth
+              variant="outlined"
+              margin="normal"
+              value={selectedTodo?.title || ""}
+              onChange={(e) =>
+                selectedTodo &&
+                setSelectedTodo({ ...selectedTodo, title: e.target.value } as Todo)
+              }
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={selectedTodo?.completed || false}
+                  onChange={(e) =>
+                    selectedTodo &&
+                    setSelectedTodo({ ...selectedTodo, completed: e.target.checked } as Todo)
+                  }
+                />
+              }
+              label="Completed"
+            />
+          </DialogContent>
+          <DialogActions sx={{ justifyContent: "center" }}>
+            <Button onClick={() => setOpenEditDialog(false)} variant="outlined">
+              Cancel
+            </Button>
+            <Button onClick={handleEditSave} color="primary" variant="outlined">
+              Save
+            </Button>
+          </DialogActions>
+        </Box>
       </Dialog>
     </>
   );

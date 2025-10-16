@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TextField, Button, Stack } from '@mui/material';
+import { TextField, Button, Stack, Box } from '@mui/material';
 import { useDispatch } from 'react-redux';
 import { addTodo } from "../store/todoSlice";
 
@@ -9,9 +9,7 @@ interface Todo {
   completed: boolean;
 }
 
-
 const TodoForm = () => {
-
   const [task, setTask] = useState<Todo>({
     id: 0,
     title: '',
@@ -22,29 +20,37 @@ const TodoForm = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTask({ ...task, title: e.target.value });
-  }
+  };
 
   const handleAddTask = () => {
     if (task.title.trim()) {
       dispatch(addTodo(task.title));
       setTask({ id: 0, title: '', completed: false });
     }
-
-  }
+  };
 
   return (
-    <div>
+    <Box
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      width="100%"
+    >
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         spacing={2}
-        sx={{ mb: 3 }}
+        sx={{
+          width: { xs: '100%', sm: '80%', md: '60%' },
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
       >
         <TextField
           fullWidth
+          size="small"
           value={task.title}
           variant="outlined"
           label="Add a new task"
-          // placeholder=""
           InputProps={{
             sx: {
               bgcolor: 'background.paper',
@@ -55,20 +61,20 @@ const TodoForm = () => {
           onChange={handleChange}
         />
         <Button
-
           variant="contained"
           color="primary"
           sx={{
-            whiteSpace: 'nowrap', minWidth: 100
+            width: { xs: '100%', sm: 'auto' }, // ✅ full width on mobile, normal on large
+            whiteSpace: 'nowrap',
+            minWidth: 100, // ✅ fixed minimum width for consistent look
           }}
           onClick={handleAddTask}
         >
           Add
         </Button>
       </Stack>
-
-    </div>
+    </Box>
   );
-}
+};
 
 export default TodoForm;
